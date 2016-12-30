@@ -34,7 +34,7 @@ WeatherAccessory.prototype =
                         var weatherObj = JSON.parse(responseBody);
                         this.temperature = parseFloat(weatherObj.main.temp);
                         this.lastupdate = (Date.now() / 1000);
-                        callback(null, temperature);
+                        callback(null, this.temperature);
                     }
                 }.bind(this));
             } else {
