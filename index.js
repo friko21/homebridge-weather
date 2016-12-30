@@ -24,7 +24,7 @@ WeatherAccessory.prototype =
         getState: function (callback) {
             // Only fetch new data once per hour
             if (this.lastupdate + (60 * 60) < (Date.now() / 1000 | 0)) {
-                var url = "http://api.openweathermap.org/data/2.5/weather?q=" + this.location + "&APPID=" + this.apikey;
+                var url = "http://api.openweathermap.org/data/2.5/weather?q=" + this.location + "&units=metric&APPID=" + this.apikey;
                 this.httpRequest(url, function (error, response, responseBody) {
                     if (error) {
                         this.log("HTTP get weather function failed: %s", error.message);
@@ -32,9 +32,7 @@ WeatherAccessory.prototype =
                     } else {
                         this.log("HTTP Response", responseBody);
                         var weatherObj = JSON.parse(responseBody);
-                        var kelvin = parseFloat(weatherObj.main.temp);
-                        var temperature = (kelvin - 273);
-                        this.temperature = temperature;
+                        this.temperature = parseFloat(weatherObj.main.temp);
                         this.lastupdate = (Date.now() / 1000);
                         callback(null, temperature);
                     }
