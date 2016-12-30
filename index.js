@@ -2,6 +2,7 @@
 
 var Service, Characteristic;
 var temperatureService;
+var humiditySensor;
 var request = require("request");
 
 module.exports = function (homebridge) {
@@ -17,6 +18,7 @@ function WeatherAccessory(log, config) {
     this.location = config["location"];
     this.lastupdate = 0;
     this.temperature = 0;
+    this.humidity = 0;
 }
 
 WeatherAccessory.prototype =
@@ -33,14 +35,17 @@ WeatherAccessory.prototype =
                         this.log("HTTP Response", responseBody);
                         var weatherObj = JSON.parse(responseBody);
                         this.temperature = parseFloat(weatherObj.main.temp);
+                        this.humidity = weatherObj.main.humidity;
                         this.lastupdate = (Date.now() / 1000);
-                        callback(null, this.temperature);
+                        callback(null, this.temperature, this.humidity);
                     }
                 }.bind(this));
             } else {
-                this.log("Returning cached data", this.temperature);
+                this.log("Returning cached data: temp: ", this.temperature);
+                this.log("Returning cached data: humidity: ",this.humidity);
                 temperatureService.setCharacteristic(Characteristic.CurrentTemperature, this.temperature);
-                callback(null, this.temperature);
+                humiditySensor.setCharacteristic(Characteristic.CurrentRelativeHumidity, this.humidity);
+                callback(null, this.temperature, this.humidity);
             }
         },
 
@@ -70,7 +75,12 @@ WeatherAccessory.prototype =
                 .getCharacteristic(Characteristic.CurrentTemperature)
                 .setProps({maxValue: 120});
 
-            return [informationService, temperatureService];
+            humiditySensor =  new Service.HumiditySensor(this.name);
+            humiditySensor
+                .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+ 			    .on("get", this.getState.bind(this));
+            
+            return [informationService, temperatureService, humiditySensor];
         },
 
         httpRequest: function (url, callback) {
