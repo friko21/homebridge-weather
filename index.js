@@ -35,7 +35,7 @@ WeatherAccessory.prototype =
                         this.log("HTTP Response", responseBody);
                         var weatherObj = JSON.parse(responseBody);
                         this.temperature = parseFloat(weatherObj.main.temp);
-                        this.humidity = weatherObj.main.humidity;
+                        this.humidity = parseFloat(weatherObj.main.humidity);
                         this.lastupdate = (Date.now() / 1000);
                         callback(null, this.temperature, this.humidity);
                     }
@@ -59,7 +59,7 @@ WeatherAccessory.prototype =
 
             informationService
                 .setCharacteristic(Characteristic.Manufacturer, "OpenWeatherMap")
-                .setCharacteristic(Characteristic.Model, "Location")
+                .setCharacteristic(Characteristic.Model, this.location)
                 .setCharacteristic(Characteristic.SerialNumber, "");
 
             temperatureService = new Service.TemperatureSensor(this.name);
