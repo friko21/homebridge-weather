@@ -3,7 +3,10 @@
 var Service, Characteristic;
 var temperatureService;
 var humiditySensor;
-var request = require("request");
+var temperatur = 0;
+var humidity = 0;
+var url;
+var exec = require('child_process').exec;
 
 module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
@@ -11,44 +14,29 @@ module.exports = function (homebridge) {
     homebridge.registerAccessory("homebridge-weather", "Weather", WeatherAccessory);
 }
 
+function updateValues(error, stdout, stderr) {
+    if (error !== null) {
+        this.log(stderr);
+    } else {
+        this.log("HTTP Response", stdout);
+        var weatherObj = JSON.parse(stdout);
+        temperature = parseFloat(weatherObj.main.temp);
+        humidity = parseFloat(weatherObj.main.humidity);
+    }
+    exec('node ./update-weather.js ' + url + ' 900000', updateValues);
+}
+
 function WeatherAccessory(log, config) {
     this.log = log;
     this.name = config["name"];
     this.apikey = config["apikey"];
     this.location = config["location"];
-    this.lastupdate = 0;
-    this.temperature = 0;
-    this.humidity = 0;
+    url = "http://api.openweathermap.org/data/2.5/weather?q=" + this.location + "&units=metric&APPID=" + this.apikey;
+    exec('node ./update-weather.js ' + url, updateValues);
 }
 
 WeatherAccessory.prototype =
     {
-        getState: function (callback) {
-            // Only fetch new data once per hour
-            if (this.lastupdate + (60 * 60) < (Date.now() / 1000 | 0)) {
-                var url = "http://api.openweathermap.org/data/2.5/weather?q=" + this.location + "&units=metric&APPID=" + this.apikey;
-                this.httpRequest(url, function (error, response, responseBody) {
-                    if (error) {
-                        this.log("HTTP get weather function failed: %s", error.message);
-                        callback(error);
-                    } else {
-                        this.log("HTTP Response", responseBody);
-                        var weatherObj = JSON.parse(responseBody);
-                        this.temperature = parseFloat(weatherObj.main.temp);
-                        this.humidity = parseFloat(weatherObj.main.humidity);
-                        this.lastupdate = (Date.now() / 1000);
-                        callback(null, this.temperature, this.humidity);
-                    }
-                }.bind(this));
-            } else {
-                this.log("Returning cached data: temp: ", this.temperature);
-                this.log("Returning cached data: humidity: ",this.humidity);
-                temperatureService.setCharacteristic(Characteristic.CurrentTemperature, this.temperature);
-                humiditySensor.setCharacteristic(Characteristic.CurrentRelativeHumidity, this.humidity);
-                callback(null, this.temperature, this.humidity);
-            }
-        },
-
         identify: function (callback) {
             this.log("Identify requested!");
             callback(); // success
@@ -65,7 +53,7 @@ WeatherAccessory.prototype =
             temperatureService = new Service.TemperatureSensor(this.name);
             temperatureService
                 .getCharacteristic(Characteristic.CurrentTemperature)
-                .on("get", this.getState.bind(this));
+                .on("get", temperature);
 
             temperatureService
                 .getCharacteristic(Characteristic.CurrentTemperature)
@@ -78,22 +66,10 @@ WeatherAccessory.prototype =
             humiditySensor =  new Service.HumiditySensor(this.name);
             humiditySensor
                 .getCharacteristic(Characteristic.CurrentRelativeHumidity)
- 			    .on("get", this.getState.bind(this));
+ 			    .on("get", humidity);
             
             return [informationService, temperatureService, humiditySensor];
         },
-
-        httpRequest: function (url, callback) {
-            request({
-                    url: url,
-                    body: "",
-                    method: "GET",
-                    rejectUnauthorized: false
-                },
-                function (error, response, body) {
-                    callback(error, response, body)
-                })
-        }
 
     };
 
