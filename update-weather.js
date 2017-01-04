@@ -10,13 +10,21 @@ function httpRequest(url, callback) {
   },
   function (error, response, body) {
     callback(error, response, body);
-  })
+  });
 }
 
-httpRequest(url, function (error, response, responseBody) {
-  if (error) {
-    throw new Error('HTTP get weather function failed: %s', error.message);
-  } else {
-    console.log(responseBody);
-  })
+function execRequest() {
+  httpRequest(url, function (error, response, responseBody) {
+    if (error) {
+      throw new Error('HTTP get weather function failed: %s', error.message);
+    } else {
+      console.log(responseBody);
+    }
+  });
+}
+
+if (process.argv[3]!==null) {
+  setTimeout(execRequest, process.argv[3]);
+} else {
+  execRequest();
 }
